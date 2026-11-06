@@ -10,10 +10,14 @@ public sealed class RelatedPostsComposer : IComposer
     public void Compose(IUmbracoBuilder builder)
     {
         builder.Services.AddOptions<RelatedPostsOptions>().BindConfiguration(RelatedPostsOptions.Section);
-        builder.Services.AddMemoryCache();
         builder.Services.AddSingleton<RelatedPostsCache>();
         builder.Services.AddSingleton<IRelatedPostsService, RelatedPostsService>();
         builder.AddNotificationHandler<ContentPublishedNotification, InvalidateOnPublishHandler>();
         builder.AddNotificationHandler<ContentUnpublishedNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<ContentMovedToRecycleBinNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<ContentDeletedNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<ContentMovedNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<PublicAccessEntrySavedNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<PublicAccessEntryDeletedNotification, InvalidateOnPublishHandler>();
     }
 }

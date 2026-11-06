@@ -3,25 +3,24 @@ using Microsoft.Extensions.Primitives;
 
 namespace BaryoDev.Umbraco.RelatedPosts;
 
-/// <summary>Memory cache with one shared token. Cancelling it drops every entry.</summary>
+/// <summary>Package-owned bounded memory cache with one shared token. Cancelling it drops every entry.</summary>
 public sealed class RelatedPostsCache
 {
-    private readonly IMemoryCache _cache;
+    private const int MaxEntries = 2000;
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = MaxEntries });
     private readonly object _gate = new();
     private CancellationTokenSource _cts = new();
 
-    public RelatedPostsCache(IMemoryCache cache) => _cache = cache;
-
     public T GetOrCreate<T>(string key, TimeSpan ttl, Func<T> create)
     {
-        return _cache.GetOrCreate(key, entry =>
-        {
-            CancellationTokenSource cts;
-            lock (_gate) cts = _cts;
-            entry.AbsoluteExpirationRelativeToNow = ttl;
-            entry.AddExpirationToken(new CancellationChangeToken(cts.Token));
-            return create();
-        })!;
+        if (_cache.TryGetValue(key, out T? hit) && hit is not null) return hit;
+        var value = create();
+        CancellationTokenSource cts;
+        lock (_gate) cts = _cts;
+        var options = new MemoryCacheEntryOptions { Size = 1, AbsoluteExpirationRelativeToNow = ttl };
+        options.AddExpirationToken(new CancellationChangeToken(cts.Token));
+        _cache.Set(key, value, options);
+        return value;
     }
 
     public void Clear()
