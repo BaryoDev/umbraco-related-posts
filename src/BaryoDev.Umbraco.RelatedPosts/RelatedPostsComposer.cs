@@ -12,12 +12,9 @@ public sealed class RelatedPostsComposer : IComposer
         builder.Services.AddOptions<RelatedPostsOptions>().BindConfiguration(RelatedPostsOptions.Section);
         builder.Services.AddSingleton<RelatedPostsCache>();
         builder.Services.AddSingleton<IRelatedPostsService, RelatedPostsService>();
-        builder.AddNotificationHandler<ContentPublishedNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<ContentUnpublishedNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<ContentMovedToRecycleBinNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<ContentDeletedNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<ContentMovedNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<PublicAccessEntrySavedNotification, InvalidateOnPublishHandler>();
-        builder.AddNotificationHandler<PublicAccessEntryDeletedNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<ContentCacheRefresherNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<PublicAccessCacheRefresherNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<MediaCacheRefresherNotification, InvalidateOnPublishHandler>();
+        builder.AddNotificationHandler<DomainCacheRefresherNotification, InvalidateOnPublishHandler>();
     }
 }
