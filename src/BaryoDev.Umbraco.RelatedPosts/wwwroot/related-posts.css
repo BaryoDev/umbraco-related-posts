@@ -1,0 +1,17 @@
+/* Custom properties fall back to the baryo.dev tokens, then to plain values. */
+.bdrp { margin: 48px 0 0; font-family: var(--bdrp-font, var(--font-sans, system-ui, sans-serif)); }
+.bdrp__heading { margin: 0 0 16px; font-size: 24px; letter-spacing: -0.015em; color: var(--bdrp-ink, var(--ink, #1c2321)); }
+.bdrp__grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.bdrp-card {
+  padding: 22px;
+  background: var(--bdrp-paper, var(--paper, #fff));
+  border: 1px solid var(--bdrp-line, var(--line, #ece4d0));
+  border-radius: var(--bdrp-radius, var(--radius-card, 16px));
+  box-shadow: 0 1px 2px var(--bdrp-shadow, var(--shadow-card, rgba(28, 35, 33, 0.09)));
+}
+.bdrp-card__img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 10px; margin: 0 0 14px; }
+.bdrp-card h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.25; }
+.bdrp-card p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: var(--bdrp-ink-soft, var(--ink-soft, #4d5552)); }
+.bdrp-card a { color: var(--bdrp-ink, var(--ink, #1c2321)); text-decoration-color: var(--bdrp-accent, var(--green, #0b7a55)); text-underline-offset: 3px; }
+.bdrp-card a:hover { color: var(--bdrp-accent-deep, var(--green-deep, #075a3e)); }
+.bdrp-card p.bdrp-card__meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; font-family: var(--bdrp-mono, var(--font-mono, ui-monospace, monospace)); font-size: 12px; color: var(--bdrp-ink-mute, var(--ink-mute, #6b736f)); }

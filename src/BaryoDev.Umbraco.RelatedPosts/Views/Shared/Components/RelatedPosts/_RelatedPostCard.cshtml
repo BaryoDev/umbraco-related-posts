@@ -1,0 +1,11 @@
+@using BaryoDev.Umbraco.RelatedPosts
+@model RelatedPost
+<article class="bdrp-card">
+    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+    {
+        <img class="bdrp-card__img" src="@Model.ImageUrl" alt="" loading="lazy" />
+    }
+    <h3><a href="@Model.Url">@Model.Name</a></h3>
+    @if (!string.IsNullOrWhiteSpace(Model.Summary)) { <p>@Model.Summary</p> }
+    <p class="bdrp-card__meta"><span>@Model.UpdateDate.ToString("d MMM yyyy")</span></p>
+</article>

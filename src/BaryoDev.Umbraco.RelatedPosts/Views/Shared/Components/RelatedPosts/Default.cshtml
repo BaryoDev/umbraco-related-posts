@@ -1,0 +1,15 @@
+@using BaryoDev.Umbraco.RelatedPosts
+@model RelatedPostsViewModel
+@if (Model.Items.Count > 0)
+{
+    <section class="bdrp" aria-labelledby="bdrp-heading">
+        <link rel="stylesheet" href="/_content/BaryoDev.Umbraco.RelatedPosts/related-posts.css" />
+        <h2 id="bdrp-heading" class="bdrp__heading">@Model.Heading</h2>
+        <div class="bdrp__grid">
+            @foreach (var item in Model.Items)
+            {
+                <partial name="~/Views/Shared/Components/RelatedPosts/_RelatedPostCard.cshtml" model="item" />
+            }
+        </div>
+    </section>
+}
