@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Core.Web;
 
 namespace BaryoDev.Umbraco.RelatedPosts;
 
@@ -12,12 +13,14 @@ public sealed class RelatedPostsApiController : ControllerBase
     private readonly IRelatedPostsService _service;
     private readonly IOptionsMonitor<RelatedPostsOptions> _options;
     private readonly ILanguageService _languages;
+    private readonly IUmbracoContextAccessor _umbraco;
 
-    public RelatedPostsApiController(IRelatedPostsService service, IOptionsMonitor<RelatedPostsOptions> options, ILanguageService languages)
+    public RelatedPostsApiController(IRelatedPostsService service, IOptionsMonitor<RelatedPostsOptions> options, ILanguageService languages, IUmbracoContextAccessor umbraco)
     {
         _service = service;
         _options = options;
         _languages = languages;
+        _umbraco = umbraco;
     }
 
     [HttpGet("{key:guid}")]
@@ -33,7 +36,10 @@ public sealed class RelatedPostsApiController : ControllerBase
             known = codes.FirstOrDefault(c => string.Equals(c, culture, StringComparison.OrdinalIgnoreCase));
         }
         var items = _service.GetRelated(key, n, known);
-        Response.Headers.CacheControl = "public, max-age=60";
+        // Preview or signed-in requests may differ per user, so shared caches must not keep them.
+        var personal = (_umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode)
+            || Request.Headers.ContainsKey("Authorization") || Request.Headers.ContainsKey("Cookie");
+        Response.Headers.CacheControl = personal ? "private, no-store" : "public, max-age=60";
         return Ok(new
         {
             items = items.Select(i => new { id = i.Key, name = i.Name, url = i.Url, summary = i.Summary, imageUrl = i.ImageUrl, manual = i.Manual })
