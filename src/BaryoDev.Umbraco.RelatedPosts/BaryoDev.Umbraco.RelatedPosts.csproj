@@ -11,13 +11,13 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <StaticWebAssetBasePath>App_Plugins/BaryoDev.RelatedPosts</StaticWebAssetBasePath>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Umbraco.Cms.Web.Common" Version="17.*" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" Version="[17.8.1,18.0.0)" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
