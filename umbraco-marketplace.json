@@ -1,0 +1,22 @@
+{
+  "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
+  "PackageType": "Package",
+  "Category": "Developer Tools",
+  "Description": "Read next related posts for Umbraco 17. Scores candidates by shared tags, same category and optional title and summary similarity, with weights you set. Manual picks come first. Results are cached and cleared on publish. Includes a view component with cards, a service, and a JSON endpoint for headless sites. No external service and no database tables. Free and MIT licensed.",
+  "AuthorDetails": {
+    "Name": "BaryoDev",
+    "Description": "Small open source .NET and JavaScript packages.",
+    "Url": "https://github.com/BaryoDev",
+    "ImageUrl": "https://raw.githubusercontent.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts/main/icon.png"
+  },
+  "DocumentationUrl": "https://github.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts#readme",
+  "IssueTrackerUrl": "https://github.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts/issues",
+  "LicenseTypes": [ "Free" ],
+  "Tags": [
+    "related posts",
+    "read next",
+    "blog",
+    "tags",
+    "headless"
+  ]
+}
