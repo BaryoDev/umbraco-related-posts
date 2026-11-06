@@ -14,11 +14,13 @@ public sealed class RelatedPostsCache
     public T GetOrCreate<T>(string key, TimeSpan ttl, Func<T> create)
     {
         if (_cache.TryGetValue(key, out T? hit) && hit is not null) return hit;
+        // Take the token before computing, so a Clear during create() is not lost.
+        CancellationToken token;
+        lock (_gate) token = _cts.Token;
         var value = create();
-        CancellationTokenSource cts;
-        lock (_gate) cts = _cts;
+        if (token.IsCancellationRequested) return value;
         var options = new MemoryCacheEntryOptions { Size = 1, AbsoluteExpirationRelativeToNow = ttl };
-        options.AddExpirationToken(new CancellationChangeToken(cts.Token));
+        options.AddExpirationToken(new CancellationChangeToken(token));
         _cache.Set(key, value, options);
         return value;
     }
@@ -31,7 +33,7 @@ public sealed class RelatedPostsCache
             old = _cts;
             _cts = new CancellationTokenSource();
         }
+        // Not disposed: a reader may still hold its token.
         old.Cancel();
-        old.Dispose();
     }
 }
