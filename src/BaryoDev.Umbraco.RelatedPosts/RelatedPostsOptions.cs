@@ -19,6 +19,10 @@ public sealed class RelatedPostsOptions
     public bool EnableTextSimilarity { get; set; }
 
     public int Count { get; set; } = 3;
+    /// <summary>Upper bound for any requested count, including the API.</summary>
+    public int MaxCount { get; set; } = 20;
+    /// <summary>Off by default: items under public access protection are left out.</summary>
+    public bool AllowProtected { get; set; }
     public int CacheMinutes { get; set; } = 60;
     public bool IncludeZeroScore { get; set; }
     public bool EnableApi { get; set; } = true;

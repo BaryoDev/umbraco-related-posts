@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Models.PublishedContent;
 using Umbraco.Cms.Core.PublishedCache;
 using Umbraco.Cms.Core.Routing;
+using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Services.Navigation;
 using Umbraco.Cms.Core.Web;
 using Umbraco.Extensions;
@@ -15,6 +16,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly RelatedPostsCache _cache;
     private readonly IPublishedContentCache _content;
     private readonly IPublishedUrlProvider _urls;
+    private readonly IPublicAccessService _access;
+    private readonly IUmbracoContextAccessor _umbraco;
     private readonly INavigationQueryService _nav;
     private readonly IPublishedStatusFilteringService _status;
 
@@ -23,6 +26,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         RelatedPostsCache cache,
         IPublishedContentCache content,
         IPublishedUrlProvider urls,
+        IPublicAccessService access,
+        IUmbracoContextAccessor umbraco,
         INavigationQueryService nav,
         IPublishedStatusFilteringService status)
     {
@@ -30,6 +35,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         _cache = cache;
         _content = content;
         _urls = urls;
+        _access = access;
+        _umbraco = umbraco;
         _nav = nav;
         _status = status;
     }
@@ -43,8 +50,10 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     public IReadOnlyList<RelatedPost> GetRelated(IPublishedContent source, int? count = null, string? culture = null)
     {
         var o = _options.CurrentValue;
-        var take = Math.Max(0, count ?? o.Count);
+        var take = Math.Clamp(count ?? o.Count, 0, Math.Max(1, o.MaxCount));
         var cacheKey = $"bdrp:{source.Key:N}:{culture}:{take}";
+        if (_umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode)
+            return Compute(source, take, culture, o);
         return _cache.GetOrCreate(cacheKey, TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes)),
             () => Compute(source, take, culture, o));
     }
@@ -101,7 +110,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         return root.DescendantsOrSelf(_nav, _status)
             .Where(c => c.Key != source.Key
                         && (types.Count == 0 || types.Contains(c.ContentType.Alias))
-                        && c.IsPublished(culture))
+                        && c.IsPublished(culture)
+                        && Allowed(c, o))
             .ToList();
     }
 
@@ -112,13 +122,16 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         switch (value)
         {
             case IPublishedContent one:
-                if (one.IsPublished(culture)) yield return one;
+                if (one.IsPublished(culture) && Allowed(one, o)) yield return one;
                 break;
             case IEnumerable<IPublishedContent> many:
-                foreach (var p in many.Where(p => p.IsPublished(culture))) yield return p;
+                foreach (var p in many.Where(p => p.IsPublished(culture) && Allowed(p, o))) yield return p;
                 break;
         }
     }
+
+    private bool Allowed(IPublishedContent c, RelatedPostsOptions o) =>
+        o.AllowProtected || !_access.IsProtected(c.Path).Success;
 
     private static List<string> Tags(IPublishedContent c, string alias, string? culture)
     {
