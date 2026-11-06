@@ -9,4 +9,7 @@ public interface IRelatedPostsService
 
     /// <summary>Same, looked up by key. Empty when the key is not published.</summary>
     IReadOnlyList<RelatedPost> GetRelated(Guid key, int? count = null, string? culture = null);
+
+    /// <summary>True when the key is published, of an allowed type and not protected.</summary>
+    bool IsEligible(Guid key);
 }

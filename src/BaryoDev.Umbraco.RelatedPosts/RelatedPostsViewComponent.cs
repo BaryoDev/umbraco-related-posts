@@ -13,6 +13,7 @@ public sealed class RelatedPostsViewComponent : ViewComponent
 
     public IViewComponentResult Invoke(IPublishedContent content, int? count = null, string? heading = null, string? culture = null)
     {
+        ArgumentNullException.ThrowIfNull(content);
         var model = new RelatedPostsViewModel(heading ?? "Read next", _service.GetRelated(content, count, culture));
         return View(model);
     }

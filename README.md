@@ -24,7 +24,7 @@ Optional arguments: `count`, `heading`, `culture`. The card markup and `related-
 
     GET /related-posts/api/v1/{key}?count=3&culture=en-US
 
-Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ] }`. Published content only. Set `EnableApi` to false to turn it off. The route is open like the rest of your front end, so add your own rule if you need it private.
+Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ] }`. Published content only. Unknown, unpublished, protected or wrong-type sources return 404. Set `EnableApi` to false to turn it off. The route is open like the rest of your front end, so add your own rule if you need it private.
 
 ## Options
 
@@ -41,9 +41,13 @@ Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ]
         "EnableTextSimilarity": true,
         "TextWeight": 4,
         "Count": 3,
+        "MaxCount": 20,
+        "AllowProtected": false,
         "CacheMinutes": 60
       }
     }
+
+`AllowProtected` is false by default, so items under public access protection never show. `MaxCount` caps any requested count. The stylesheet is served from `/App_Plugins/BaryoDev.RelatedPosts/related-posts.css`. Text similarity suits English only.
 
 Scoring, caching and every option are written up in [docs/design.md](docs/design.md).
 

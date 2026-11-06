@@ -15,13 +15,13 @@ Items with a score of 0 are dropped unless `IncludeZeroScore` is true. Ties brea
 
 ## Caching
 
-Results are cached per source key, culture and count in `IMemoryCache`. The candidate list per root is cached too. A single `ContentPublishedNotification` or `ContentUnpublishedNotification` handler cancels a shared token, which drops every entry. This is coarse on purpose. Related lists depend on the whole candidate set, so a finer rule would be wrong more often than it is fast. Entries also expire after `CacheMinutes`.
+The candidate list per root and culture is cached, and the ranked keys per source and culture. Urls are built per request, so the request domain is never cached. Misses are single flight. The cache is package-owned and bounded. Preview requests skip it. The culture is resolved first (argument, then the ambient variation context). Content, media, domain and public access cache refresher notifications cancel a shared token, which drops every entry and also covers load-balanced servers. This is coarse on purpose. Related lists depend on the whole candidate set, so a finer rule would be wrong more often than it is fast. Entries also expire after `CacheMinutes`.
 
 ## Surface
 
-- `IRelatedPostsService.GetRelated(IPublishedContent, int?)` returns `RelatedPost` records (key, name, url, summary, image, score, reasons).
+- `IRelatedPostsService.GetRelated(IPublishedContent, int?)` returns `RelatedPost` records (key, name, url, summary, image, score, manual).
 - View component `RelatedPosts`, called as `@await Component.InvokeAsync("RelatedPosts", new { content = Model })`, renders the card partial.
-- Endpoint `GET /related-posts/api/v1/{key}?count=3` returns keys, names, urls for headless sites. It only reads published content and returns 404 for unknown keys.
+- Endpoint `GET /related-posts/api/v1/{key}?count=3` returns keys, names, urls for headless sites. It only reads published content and returns 404 for unknown, unpublished, protected or wrong-type sources.
 
 ## Options
 
@@ -41,6 +41,8 @@ Section `BaryoDev:RelatedPosts`:
 | EnableTextSimilarity | false |
 | Count | 3 |
 | CacheMinutes | 60 |
+| MaxCount | 20, cap for any requested count |
+| AllowProtected | false, protected items are left out |
 | IncludeZeroScore | false |
 | EnableApi | true |
 

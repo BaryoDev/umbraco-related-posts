@@ -23,7 +23,7 @@ public sealed class RelatedPostsApiController : ControllerBase
     [HttpGet("{key:guid}")]
     public async Task<IActionResult> Get(Guid key, [FromQuery] int? count, [FromQuery] string? culture)
     {
-        if (!_options.CurrentValue.EnableApi) return NotFound();
+        if (!_options.CurrentValue.EnableApi || !_service.IsEligible(key)) return NotFound();
         var max = Math.Max(1, _options.CurrentValue.MaxCount);
         var n = count is > 0 ? Math.Min(count.Value, max) : (int?)null;
         string? known = null;
@@ -33,6 +33,7 @@ public sealed class RelatedPostsApiController : ControllerBase
             known = codes.FirstOrDefault(c => string.Equals(c, culture, StringComparison.OrdinalIgnoreCase));
         }
         var items = _service.GetRelated(key, n, known);
+        Response.Headers.CacheControl = "public, max-age=60";
         return Ok(new
         {
             items = items.Select(i => new { id = i.Key, name = i.Name, url = i.Url, summary = i.Summary, imageUrl = i.ImageUrl, manual = i.Manual })

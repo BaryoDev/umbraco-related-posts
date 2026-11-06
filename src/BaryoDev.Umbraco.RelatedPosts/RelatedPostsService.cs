@@ -18,6 +18,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly IPublishedUrlProvider _urls;
     private readonly IPublicAccessService _access;
     private readonly IUmbracoContextAccessor _umbraco;
+    private readonly IVariationContextAccessor _variation;
     private readonly INavigationQueryService _nav;
     private readonly IPublishedStatusFilteringService _status;
 
@@ -28,6 +29,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         IPublishedUrlProvider urls,
         IPublicAccessService access,
         IUmbracoContextAccessor umbraco,
+        IVariationContextAccessor variation,
         INavigationQueryService nav,
         IPublishedStatusFilteringService status)
     {
@@ -37,6 +39,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         _urls = urls;
         _access = access;
         _umbraco = umbraco;
+        _variation = variation;
         _nav = nav;
         _status = status;
     }
@@ -47,48 +50,70 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         return source is null ? [] : GetRelated(source, count, culture);
     }
 
+    public bool IsEligible(Guid key)
+    {
+        var source = _content.GetById(key);
+        if (source is null) return false;
+        var o = _options.CurrentValue;
+        return (o.DocumentTypeAliases.Length == 0
+                || o.DocumentTypeAliases.Contains(source.ContentType.Alias, StringComparer.OrdinalIgnoreCase))
+               && Allowed(source, o);
+    }
+
     public IReadOnlyList<RelatedPost> GetRelated(IPublishedContent source, int? count = null, string? culture = null)
     {
         var o = _options.CurrentValue;
         var take = Math.Clamp(count ?? o.Count, 0, Math.Max(1, o.MaxCount));
-        var cacheKey = $"bdrp:{source.Key:N}:{culture}:{take}";
-        if (_umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode)
-            return Compute(source, take, culture, o);
-        return _cache.GetOrCreate(cacheKey, TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes)),
-            () => Compute(source, take, culture, o));
-    }
-
-    private IReadOnlyList<RelatedPost> Compute(IPublishedContent source, int take, string? culture, RelatedPostsOptions o)
-    {
         if (take == 0) return [];
 
-        var candidates = Candidates(source, culture, o);
+        // Resolve the culture once so the cache key and the reads agree.
+        var effective = culture ?? _variation.VariationContext?.Culture;
+        var umbCulture = string.IsNullOrEmpty(effective) ? null : effective;
+
+        var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));
+        var preview = _umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode;
+        var ranked = preview
+            ? Rank(source, umbCulture, o)
+            : _cache.GetOrCreate($"bdrp:r:{source.Key:N}:{effective}", ttl, () => Rank(source, umbCulture, o));
+
+        return ranked.Take(take).Select(r => ToPost(r.Item, r.Score, r.Manual, o, umbCulture)).ToList();
+    }
+
+    private List<Ranked> Rank(IPublishedContent source, string? culture, RelatedPostsOptions o)
+    {
+        var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));
+        var rootKey = RootKey(source);
+        var preview = _umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode;
+        var candidates = preview
+            ? Candidates(rootKey, culture, o)
+            : _cache.GetOrCreate($"bdrp:c:{rootKey:N}:{culture}", ttl, () => Candidates(rootKey, culture, o));
+        var limit = Math.Max(1, o.MaxCount);
+
         var sourceTags = Tags(source, o.TagsAlias, culture);
         var sourceCats = Categories(source, o.CategoryAlias, culture);
+        var pool = candidates.Where(c => c.Key != source.Key).ToList();
 
-        var sourceTokens = o.EnableTextSimilarity ? Tokens(source, o, culture) : [];
-        var docTokens = o.EnableTextSimilarity
-            ? candidates.Select(c => Tokens(c, o, culture)).ToList()
-            : [];
-        var text = o.EnableTextSimilarity ? TextSimilarity.Score(sourceTokens, docTokens) : [];
+        double[] text = [];
+        if (o.EnableTextSimilarity)
+            text = TextSimilarity.Score(Tokens(source, o, culture), pool.Select(c => Tokens(c, o, culture)).ToList());
 
         var scored = new List<(IPublishedContent Item, double Score)>();
-        for (var i = 0; i < candidates.Count; i++)
+        for (var i = 0; i < pool.Count; i++)
         {
-            var c = candidates[i];
+            var c = pool[i];
             var score = Tags(c, o.TagsAlias, culture).Intersect(sourceTags, StringComparer.OrdinalIgnoreCase).Count() * o.TagWeight;
             if (sourceCats.Count > 0 && Categories(c, o.CategoryAlias, culture).Overlaps(sourceCats)) score += o.CategoryWeight;
             if (o.EnableTextSimilarity) score += text[i] * o.TextWeight;
             if (score > 0 || o.IncludeZeroScore) scored.Add((c, score));
         }
 
-        var result = new List<RelatedPost>();
+        var result = new List<Ranked>();
         var seen = new HashSet<Guid> { source.Key };
 
         foreach (var pick in ManualPicks(source, o, culture))
         {
-            if (!seen.Add(pick.Key)) continue;
-            result.Add(ToPost(pick, 0, true, o, culture));
+            if (result.Count >= limit) break;
+            if (seen.Add(pick.Key)) result.Add(new Ranked(pick, 0, true));
         }
 
         foreach (var s in scored
@@ -96,20 +121,25 @@ internal sealed class RelatedPostsService : IRelatedPostsService
                      .ThenByDescending(x => x.Item.UpdateDate)
                      .ThenBy(x => x.Item.Name, StringComparer.OrdinalIgnoreCase))
         {
-            if (!seen.Add(s.Item.Key)) continue;
-            result.Add(ToPost(s.Item, Math.Round(s.Score, 3), false, o, culture));
+            if (result.Count >= limit) break;
+            if (seen.Add(s.Item.Key)) result.Add(new Ranked(s.Item, Math.Round(s.Score, 3), false));
         }
 
-        return result.Take(take).ToList();
+        return result;
     }
 
-    private List<IPublishedContent> Candidates(IPublishedContent source, string? culture, RelatedPostsOptions o)
+    private sealed record Ranked(IPublishedContent Item, double Score, bool Manual);
+
+    private Guid RootKey(IPublishedContent source) =>
+        _nav.TryGetAncestorsKeys(source.Key, out var ancestors) && ancestors.Any() ? ancestors.Last() : source.Key;
+
+    /// <summary>Published, allowed items under the root. Does not exclude the source.</summary>
+    private List<IPublishedContent> Candidates(Guid rootKey, string? culture, RelatedPostsOptions o)
     {
-        var root = source.Root(_nav, _status);
+        if (!_nav.TryGetDescendantsKeysOrSelfKeys(rootKey, out var keys)) return [];
         var types = new HashSet<string>(o.DocumentTypeAliases, StringComparer.OrdinalIgnoreCase);
-        return root.DescendantsOrSelf(_nav, _status)
-            .Where(c => c.Key != source.Key
-                        && (types.Count == 0 || types.Contains(c.ContentType.Alias))
+        return _status.FilterAvailable(keys, culture)
+            .Where(c => (types.Count == 0 || types.Contains(c.ContentType.Alias))
                         && c.IsPublished(culture)
                         && Allowed(c, o))
             .ToList();
