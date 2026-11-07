@@ -24,7 +24,7 @@ internal static class Posts
     public static IPublishedContent Post(string name, string? tags = null, string? category = null, int id = 1)
     {
         var key = Guid.NewGuid();
-        var type = Stub.Make<IPublishedContentType>(("get_Alias", _ => "post"));
+        var type = Stub.Make<IPublishedContentType>(("get_Alias", _ => "post"), ("get_ItemType", _ => PublishedItemType.Content));
         var cultures = new Dictionary<string, PublishedCultureInfo>
         {
             [""] = new PublishedCultureInfo("", name, null, Stamp),

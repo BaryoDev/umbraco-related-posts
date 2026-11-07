@@ -3,6 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using Umbraco.Cms.Core.Cache;
+using Umbraco.Cms.Core.Notifications;
+using Umbraco.Cms.Core.Serialization;
+using Umbraco.Cms.Core.Sync;
+using Umbraco.Cms.Infrastructure.Sync;
+using Umbraco.Extensions;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Core.Models;
@@ -61,18 +67,39 @@ public class Stub : DispatchProxy
     }
 }
 
+// Delivers cache refreshers on this server straight away, so a publish updates the published cache and navigation.
+public sealed class LocalServerMessenger : ServerMessengerBase
+{
+    public LocalServerMessenger(IJsonSerializer serializer) : base(false, serializer)
+    {
+    }
+
+    public override void SendMessages()
+    {
+    }
+
+    public override void Sync()
+    {
+    }
+
+    protected override void DeliverRemote(ICacheRefresher refresher, MessageType messageType, IEnumerable<object>? ids = null, string? json = null) =>
+        throw new NotSupportedException();
+}
+
 public abstract class RelatedPostsFixture : UmbracoIntegrationTest
 {
     protected MutableOptions Options { get; private set; } = null!;
 
     protected override void CustomTestSetup(IUmbracoBuilder builder)
     {
+        builder.AddNotificationHandler<ContentTreeChangeNotification, ContentTreeChangeDistributedCacheNotificationHandler>();
+        builder.Services.AddUnique<IServerMessenger, LocalServerMessenger>();
         new RelatedPostsComposer().Compose(builder);
         Options = new MutableOptions();
         builder.Services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<RelatedPostsOptions>>(Options));
 
         // Url building needs a request; the tests only care about which items come back.
-        builder.Services.Replace(ServiceDescriptor.Singleton(Stub.Make<IPublishedUrlProvider>()));
+        builder.Services.Replace(ServiceDescriptor.Singleton(Stub.Make<IPublishedUrlProvider>(("GetUrl", _ => "/post"))));
     }
 
     protected IRelatedPostsService Related => GetRequiredService<IRelatedPostsService>();
