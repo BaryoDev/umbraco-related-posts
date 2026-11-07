@@ -20,6 +20,10 @@
     <PackageReference Include="Umbraco.Cms.Web.Common" Version="[17.8.1,18.0.0)" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="BaryoDev.Umbraco.RelatedPosts.Tests" />
+    <InternalsVisibleTo Include="BaryoDev.Umbraco.RelatedPosts.IntegrationTests" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
     <None Include="../../icon.png" Pack="true" PackagePath="/" />
   </ItemGroup>

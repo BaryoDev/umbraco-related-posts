@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BaryoDev.Umbraco.RelatedPosts.Scoring;
 using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Models.PublishedContent;
@@ -192,10 +193,27 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private static List<string> Strings(object? value) => value switch
     {
         null => [],
-        string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+        string s => FromString(s),
         IEnumerable<string> many => many.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList(),
         _ => []
     };
+
+    // A JSON array keeps commas inside a tag; anything else is a comma list.
+    private static List<string> FromString(string s)
+    {
+        if (s.AsSpan().TrimStart().StartsWith("["))
+        {
+            try
+            {
+                var tags = JsonSerializer.Deserialize<string[]>(s);
+                if (tags is not null) return tags.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList();
+            }
+            catch (JsonException)
+            {
+            }
+        }
+        return s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    }
 
     private static string[] Tokens(IPublishedContent c, RelatedPostsOptions o, string? culture)
     {
