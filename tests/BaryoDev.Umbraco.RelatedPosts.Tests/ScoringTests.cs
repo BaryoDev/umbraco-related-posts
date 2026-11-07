@@ -50,12 +50,13 @@ public class ScoringTests
         Assert.All(related, r => Assert.Equal(3d, r.Score));
     }
 
+    // Invalid JSON falls back to a comma list, so both sides carry the same junk tag and match.
     [Theory]
-    [InlineData("[")]
-    [InlineData("[\"a\"")]
-    [InlineData("[1,2]")]
-    [InlineData("[null]")]
-    public void Malformed_json_tags_fall_back_without_throwing(string tags)
+    [InlineData("[", true)]
+    [InlineData("[\"a\"", true)]
+    [InlineData("[1,2]", true)]
+    [InlineData("[null]", false)]
+    public void Malformed_json_tags_fall_back_without_throwing(string tags, bool matches)
     {
         var source = Posts.Post("Source", tags: tags, id: 1);
         var other = Posts.Post("Other", tags: tags, id: 2);
@@ -63,7 +64,29 @@ public class ScoringTests
 
         var related = Posts.Service(options, source, other).GetRelated(source);
 
-        Assert.NotNull(related);
+        Assert.Equal(matches ? new[] { "Other" } : Array.Empty<string>(), related.Select(r => r.Name));
+    }
+
+    public static TheoryData<object, bool> TagValues => new()
+    {
+        { new[] { "a", "b" }, true },
+        { new List<string> { " a ", "", "  " }, true },
+        { Array.Empty<string>(), false },
+        { 5, false },
+        { Posts.NullValue, false },
+    };
+
+    [Theory]
+    [MemberData(nameof(TagValues))]
+    public void Tag_property_values_of_any_shape_are_read(object value, bool matches)
+    {
+        var source = Posts.Post("Source", tags: "a", id: 1);
+        var other = Posts.Post("Other", tags: value, id: 2);
+        var options = new RelatedPostsOptions { EnableTextSimilarity = false };
+
+        var related = Posts.Service(options, source, other).GetRelated(source);
+
+        Assert.Equal(matches ? new[] { "Other" } : Array.Empty<string>(), related.Select(r => r.Name));
     }
 
     [Fact]
