@@ -9,8 +9,8 @@
     "Url": "https://github.com/BaryoDev",
     "ImageUrl": "https://raw.githubusercontent.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts/main/icon.png"
   },
-  "DocumentationUrl": "https://github.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts#readme",
-  "IssueTrackerUrl": "https://github.com/BaryoDev/BaryoDev.Umbraco.RelatedPosts/issues",
+  "DocumentationUrl": "https://github.com/BaryoDev/umbraco-related-posts#readme",
+  "IssueTrackerUrl": "https://github.com/BaryoDev/umbraco-related-posts/issues",
   "LicenseTypes": [ "Free" ],
   "Tags": [
     "related posts",
