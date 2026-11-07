@@ -22,6 +22,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly IVariationContextAccessor _variation;
     private readonly IDocumentNavigationQueryService _nav;
     private readonly IPublishedContentStatusFilteringService _status;
+    private readonly IDefaultCultureAccessor _defaultCulture;
 
     public RelatedPostsService(
         IOptionsMonitor<RelatedPostsOptions> options,
@@ -32,7 +33,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         IUmbracoContextAccessor umbraco,
         IVariationContextAccessor variation,
         IDocumentNavigationQueryService nav,
-        IPublishedContentStatusFilteringService status)
+        IPublishedContentStatusFilteringService status,
+        IDefaultCultureAccessor defaultCulture)
     {
         _options = options;
         _cache = cache;
@@ -43,6 +45,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         _variation = variation;
         _nav = nav;
         _status = status;
+        _defaultCulture = defaultCulture;
     }
 
     public IReadOnlyList<RelatedPost> GetRelated(Guid key, int? count = null, string? culture = null)
@@ -67,8 +70,10 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         var take = Math.Clamp(count ?? o.Count, 0, Math.Max(1, o.MaxCount));
         if (take == 0) return [];
 
-        // Resolve the culture once so the cache key and the reads agree.
+        // Resolve the culture once so the cache key and the reads agree. Without one, Umbraco's
+        // publish status check can drop every item, so fall back to the default language.
         var effective = culture ?? _variation.VariationContext?.Culture;
+        if (string.IsNullOrEmpty(effective)) effective = _defaultCulture.DefaultCulture;
         var umbCulture = string.IsNullOrEmpty(effective) ? null : effective;
 
         var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));

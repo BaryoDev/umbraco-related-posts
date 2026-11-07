@@ -49,7 +49,11 @@ internal static class Posts
     private static IPublishedProperty Property(object value) =>
         Stub.Make<IPublishedProperty>(("GetValue", _ => value));
 
-    public static RelatedPostsService Service(RelatedPostsOptions options, params IPublishedContent[] all)
+    public static RelatedPostsService Service(RelatedPostsOptions options, params IPublishedContent[] all) =>
+        Service(options, [], all);
+
+    // Like Umbraco before its publish status cache knows the default language: an empty culture matches nothing.
+    public static RelatedPostsService Service(RelatedPostsOptions options, List<string?> cultures, params IPublishedContent[] all)
     {
         var nav = Stub.Make<IDocumentNavigationQueryService>(
             ("TryGetDescendantsKeysOrSelfKeys", a =>
@@ -60,6 +64,9 @@ internal static class Posts
         var status = Stub.Make<IPublishedContentStatusFilteringService>(
             ("FilterAvailable", a =>
             {
+                var culture = (string?)a[1];
+                cultures.Add(culture);
+                if (string.IsNullOrEmpty(culture)) return new List<IPublishedContent>();
                 var keys = ((IEnumerable<Guid>)a[0]!).ToHashSet();
                 return all.Where(c => keys.Contains(c.Key)).ToList();
             }));
@@ -73,6 +80,7 @@ internal static class Posts
             Stub.Make<IUmbracoContextAccessor>(),
             Stub.Make<IVariationContextAccessor>(),
             nav,
-            status);
+            status,
+            Stub.Make<IDefaultCultureAccessor>(("get_DefaultCulture", _ => "en-US")));
     }
 }

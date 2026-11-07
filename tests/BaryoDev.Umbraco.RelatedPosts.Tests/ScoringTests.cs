@@ -21,6 +21,20 @@ public class ScoringTests
     }
 
     [Fact]
+    public void Invariant_content_is_related_when_no_culture_is_resolved()
+    {
+        var source = Posts.Post("Source", tags: "a", id: 1);
+        var other = Posts.Post("Other", tags: "a", id: 2);
+        var cultures = new List<string?>();
+        var options = new RelatedPostsOptions { EnableTextSimilarity = false };
+
+        var related = Posts.Service(options, cultures, source, other).GetRelated(source);
+
+        Assert.Equal(["Other"], related.Select(r => r.Name));
+        Assert.Equal(["en-US"], cultures);
+    }
+
+    [Fact]
     public void Json_array_tag_string_is_parsed_not_split_on_commas()
     {
         var source = Posts.Post("Source", tags: "[\"umbraco\",\"news, events\"]", id: 1);
