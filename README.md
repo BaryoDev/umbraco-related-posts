@@ -47,7 +47,13 @@ Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ]
       }
     }
 
-`AllowProtected` is false by default, so items under public access protection never show. `MaxCount` caps any requested count. The stylesheet is served from `/App_Plugins/BaryoDev.RelatedPosts/related-posts.css`. Text similarity suits English only.
+`AllowProtected` is false by default, so items under public access protection never show. `MaxCount` caps any requested count. The stylesheet is served from `/App_Plugins/BaryoDev.RelatedPosts/related-posts.css`. Text similarity suits English only. `SummaryAlias` reads text properties only, so point it at a text area, not rich text or blocks.
+
+An item at the top of the tree (no section above it) gets no related posts. Posts need to sit under a Home or section page.
+
+Leave `DocumentTypeAliases` empty and the Home and section pages can show up as cards. Set it (for example to `blogPost`) to keep them out.
+
+Changing `TagsAlias`, the weights, `AllowProtected` or other options at runtime clears the cache.
 
 Scoring, caching and every option are written up in [docs/design.md](docs/design.md).
 
