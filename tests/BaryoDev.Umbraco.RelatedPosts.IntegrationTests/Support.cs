@@ -25,7 +25,18 @@ public sealed class MutableOptions : IOptionsMonitor<RelatedPostsOptions>
 
     public RelatedPostsOptions Get(string? name) => CurrentValue;
 
-    public IDisposable? OnChange(Action<RelatedPostsOptions, string?> listener) => null;
+    private readonly List<Action<RelatedPostsOptions, string?>> _listeners = [];
+
+    public IDisposable? OnChange(Action<RelatedPostsOptions, string?> listener)
+    {
+        _listeners.Add(listener);
+        return null;
+    }
+
+    public void RaiseChanged()
+    {
+        foreach (var listener in _listeners) listener(CurrentValue, null);
+    }
 }
 
 // Answers named members; everything else returns a default.

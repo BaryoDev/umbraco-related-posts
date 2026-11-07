@@ -46,6 +46,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         _nav = nav;
         _status = status;
         _defaultCulture = defaultCulture;
+        _options.OnChange(_ => _cache.Clear());
     }
 
     public IReadOnlyList<RelatedPost> GetRelated(Guid key, int? count = null, string? culture = null)
@@ -88,7 +89,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private List<Ranked> Rank(IPublishedContent source, string? culture, RelatedPostsOptions o)
     {
         var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));
-        var rootKey = RootKey(source);
+        // A root-level item has no section, so it gets no related posts.
+        if (RootKey(source) is not { } rootKey) return [];
         var preview = _umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode;
         var candidates = preview
             ? Candidates(rootKey, culture, o)
@@ -136,8 +138,13 @@ internal sealed class RelatedPostsService : IRelatedPostsService
 
     private sealed record Ranked(IPublishedContent Item, double Score, bool Manual);
 
-    private Guid RootKey(IPublishedContent source) =>
-        _nav.TryGetAncestorsKeys(source.Key, out var ancestors) && ancestors.Any() ? ancestors.Last() : source.Key;
+    // Null when the navigation service knows the item and it has no ancestors. If it cannot tell, the item is its own root.
+    private Guid? RootKey(IPublishedContent source)
+    {
+        if (!_nav.TryGetAncestorsKeys(source.Key, out var ancestors)) return source.Key;
+        var list = ancestors.ToList();
+        return list.Count == 0 ? null : list[^1];
+    }
 
     /// <summary>Published, allowed items under the root. Does not exclude the source.</summary>
     private List<IPublishedContent> Candidates(Guid rootKey, string? culture, RelatedPostsOptions o)
