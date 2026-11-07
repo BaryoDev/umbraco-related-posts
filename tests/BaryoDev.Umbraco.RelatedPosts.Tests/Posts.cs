@@ -50,7 +50,7 @@ internal static class Posts
 
     public static RelatedPostsService Service(RelatedPostsOptions options, params IPublishedContent[] all)
     {
-        var nav = Stub.Make<INavigationQueryService>(
+        var nav = Stub.Make<IDocumentNavigationQueryService>(
             ("TryGetDescendantsKeysOrSelfKeys", a =>
             {
                 a[1] = all.Select(c => c.Key).ToArray();

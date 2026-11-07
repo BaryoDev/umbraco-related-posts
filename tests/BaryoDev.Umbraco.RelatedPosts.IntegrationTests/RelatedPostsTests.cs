@@ -68,31 +68,34 @@ public class RelatedPostsTests : RelatedPostsFixture
         Assert.That(danish.Success, Is.True, "create language: " + danish.Status);
         CreatePostType("vpost", ContentVariation.Culture);
 
-        var posts = new List<IContent>();
-        foreach (var n in new[] { "Alpha", "Beta", "Gamma" })
+        IContent Variant(string n, IContent? parent)
         {
-            var item = Content.Create(n, Constants.System.Root, "vpost");
+            var item = Content.Create(n, parent?.Id ?? Constants.System.Root, "vpost");
             item.SetCultureName(n + " EN", "en-US");
             item.SetCultureName(n + " DA", "da-DK");
             Content.Save(item);
             var published = Content.Publish(item, ["en-US", "da-DK"]);
             Assert.That(published.Success, Is.True, "publish " + n + ": " + published.Result);
-            posts.Add(item);
+            return item;
         }
 
-        var source = posts[0].Key;
+        // Posts sit under a variant section, so the root is the section and not the source itself.
+        var home = Variant("Home", null);
+        var source = Variant("Alpha", home).Key;
+        Variant("Beta", home);
+        Variant("Gamma", home);
         var cache = GetRequiredService<RelatedPostsCache>();
 
         // Empty cache, Danish first.
         var da = Related.GetRelated(source, 10, "da-DK").Select(r => r.Name).ToList();
-        Assert.That(da, Is.EquivalentTo(new[] { "Beta DA", "Gamma DA" }));
+        Assert.That(da, Is.EquivalentTo(new[] { "Home DA", "Beta DA", "Gamma DA" }));
 
         // English cached first, then Danish.
         cache.Clear();
         var en = Related.GetRelated(source, 10, "en-US").Select(r => r.Name).ToList();
-        Assert.That(en, Is.EquivalentTo(new[] { "Beta EN", "Gamma EN" }));
+        Assert.That(en, Is.EquivalentTo(new[] { "Home EN", "Beta EN", "Gamma EN" }));
         var daAfter = Related.GetRelated(source, 10, "da-DK").Select(r => r.Name).ToList();
-        Assert.That(daAfter, Is.EquivalentTo(new[] { "Beta DA", "Gamma DA" }));
+        Assert.That(daAfter, Is.EquivalentTo(new[] { "Home DA", "Beta DA", "Gamma DA" }));
         Assert.That(Related.GetRelated(source, 10, "en-US").Select(r => r.Name), Is.EquivalentTo(en));
     }
 

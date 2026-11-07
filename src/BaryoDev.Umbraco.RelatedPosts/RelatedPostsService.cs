@@ -20,7 +20,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly IPublicAccessService _access;
     private readonly IUmbracoContextAccessor _umbraco;
     private readonly IVariationContextAccessor _variation;
-    private readonly INavigationQueryService _nav;
+    private readonly IDocumentNavigationQueryService _nav;
     private readonly IPublishedStatusFilteringService _status;
 
     public RelatedPostsService(
@@ -31,7 +31,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         IPublicAccessService access,
         IUmbracoContextAccessor umbraco,
         IVariationContextAccessor variation,
-        INavigationQueryService nav,
+        IDocumentNavigationQueryService nav,
         IPublishedStatusFilteringService status)
     {
         _options = options;
@@ -215,10 +215,10 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         return s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
-    private static string[] Tokens(IPublishedContent c, RelatedPostsOptions o, string? culture)
+    private string[] Tokens(IPublishedContent c, RelatedPostsOptions o, string? culture)
     {
         var summary = string.IsNullOrWhiteSpace(o.SummaryAlias) ? null : c.GetProperty(o.SummaryAlias)?.GetValue(culture)?.ToString();
-        return TextSimilarity.Tokens($"{c.Name(culture)} {summary}");
+        return TextSimilarity.Tokens($"{c.Name(_variation, culture)} {summary}");
     }
 
     private RelatedPost ToPost(IPublishedContent c, double score, bool manual, RelatedPostsOptions o, string? culture)
@@ -231,6 +231,6 @@ internal sealed class RelatedPostsService : IRelatedPostsService
             var item = media as IPublishedContent ?? (media as IEnumerable<IPublishedContent>)?.FirstOrDefault();
             image = item?.Url(_urls);
         }
-        return new RelatedPost(c.Key, c.Name(culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate);
+        return new RelatedPost(c.Key, c.Name(_variation, culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate);
     }
 }

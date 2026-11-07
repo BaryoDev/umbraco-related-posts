@@ -12,7 +12,7 @@ public class ScoringTests
         var oneTag = Posts.Post("One tag", tags: "a", category: "c2", id: 3);
         var categoryOnly = Posts.Post("Category only", tags: "z", category: "c1", id: 4);
         var nothing = Posts.Post("Nothing", tags: "z", category: "c2", id: 5);
-        var options = new RelatedPostsOptions { TagWeight = 5, CategoryWeight = 1, Count = 10 };
+        var options = new RelatedPostsOptions { TagWeight = 5, CategoryWeight = 1, EnableTextSimilarity = false, Count = 10 };
 
         var related = Posts.Service(options, source, both, oneTag, categoryOnly, nothing).GetRelated(source);
 
@@ -23,16 +23,33 @@ public class ScoringTests
     [Fact]
     public void Json_array_tag_string_is_parsed_not_split_on_commas()
     {
-        var source = Posts.Post("Source", tags: "[\"news, events\",\"umbraco\"]", id: 1);
+        var source = Posts.Post("Source", tags: "[\"umbraco\",\"news, events\"]", id: 1);
         var shared = Posts.Post("Shared", tags: "[\"news, events\"]", id: 2);
-        var split = Posts.Post("Split", tags: "events", id: 3);
-        var options = new RelatedPostsOptions { TagWeight = 3, Count = 10 };
+        var plain = Posts.Post("Plain", tags: "umbraco", id: 3);
+        var split = Posts.Post("Split", tags: "events", id: 4);
+        var options = new RelatedPostsOptions { TagWeight = 3, EnableTextSimilarity = false, Count = 10 };
 
-        var related = Posts.Service(options, source, shared, split).GetRelated(source);
+        var related = Posts.Service(options, source, shared, plain, split).GetRelated(source);
 
-        var only = Assert.Single(related);
-        Assert.Equal("Shared", only.Name);
-        Assert.Equal(3d, only.Score);
+        // The old comma split leaves quotes on "umbraco", so Plain would score 0.
+        Assert.Equal(["Plain", "Shared"], related.OrderBy(r => r.Name).Select(r => r.Name));
+        Assert.All(related, r => Assert.Equal(3d, r.Score));
+    }
+
+    [Theory]
+    [InlineData("[")]
+    [InlineData("[\"a\"")]
+    [InlineData("[1,2]")]
+    [InlineData("[null]")]
+    public void Malformed_json_tags_fall_back_without_throwing(string tags)
+    {
+        var source = Posts.Post("Source", tags: tags, id: 1);
+        var other = Posts.Post("Other", tags: tags, id: 2);
+        var options = new RelatedPostsOptions { EnableTextSimilarity = false };
+
+        var related = Posts.Service(options, source, other).GetRelated(source);
+
+        Assert.NotNull(related);
     }
 
     [Fact]
@@ -40,10 +57,11 @@ public class ScoringTests
     {
         var source = Posts.Post("Source", tags: "a, b", id: 1);
         var other = Posts.Post("Other", tags: "b,c", id: 2);
+        var options = new RelatedPostsOptions { TagWeight = 4, EnableTextSimilarity = false };
 
-        var related = Posts.Service(new RelatedPostsOptions(), source, other).GetRelated(source);
+        var related = Posts.Service(options, source, other).GetRelated(source);
 
-        Assert.Equal(3d, Assert.Single(related).Score);
+        Assert.Equal(4d, Assert.Single(related).Score);
     }
 
     [Fact]
