@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BaryoDev.Umbraco.RelatedPosts.Scoring;
 using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Models.PublishedContent;
@@ -19,8 +20,9 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly IPublicAccessService _access;
     private readonly IUmbracoContextAccessor _umbraco;
     private readonly IVariationContextAccessor _variation;
-    private readonly INavigationQueryService _nav;
-    private readonly IPublishedStatusFilteringService _status;
+    private readonly IDocumentNavigationQueryService _nav;
+    private readonly IPublishedContentStatusFilteringService _status;
+    private readonly IDefaultCultureAccessor _defaultCulture;
 
     public RelatedPostsService(
         IOptionsMonitor<RelatedPostsOptions> options,
@@ -30,8 +32,9 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         IPublicAccessService access,
         IUmbracoContextAccessor umbraco,
         IVariationContextAccessor variation,
-        INavigationQueryService nav,
-        IPublishedStatusFilteringService status)
+        IDocumentNavigationQueryService nav,
+        IPublishedContentStatusFilteringService status,
+        IDefaultCultureAccessor defaultCulture)
     {
         _options = options;
         _cache = cache;
@@ -42,6 +45,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         _variation = variation;
         _nav = nav;
         _status = status;
+        _defaultCulture = defaultCulture;
+        _options.OnChange(_ => _cache.Clear());
     }
 
     public IReadOnlyList<RelatedPost> GetRelated(Guid key, int? count = null, string? culture = null)
@@ -66,8 +71,10 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         var take = Math.Clamp(count ?? o.Count, 0, Math.Max(1, o.MaxCount));
         if (take == 0) return [];
 
-        // Resolve the culture once so the cache key and the reads agree.
+        // Resolve the culture once so the cache key and the reads agree. Without one, Umbraco's
+        // publish status check can drop every item, so fall back to the default language.
         var effective = culture ?? _variation.VariationContext?.Culture;
+        if (string.IsNullOrEmpty(effective)) effective = _defaultCulture.DefaultCulture;
         var umbCulture = string.IsNullOrEmpty(effective) ? null : effective;
 
         var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));
@@ -82,7 +89,8 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private List<Ranked> Rank(IPublishedContent source, string? culture, RelatedPostsOptions o)
     {
         var ttl = TimeSpan.FromMinutes(Math.Max(1, o.CacheMinutes));
-        var rootKey = RootKey(source);
+        // A root-level item has no section, so it gets no related posts.
+        if (RootKey(source) is not { } rootKey) return [];
         var preview = _umbraco.TryGetUmbracoContext(out var ctx) && ctx.InPreviewMode;
         var candidates = preview
             ? Candidates(rootKey, culture, o)
@@ -130,8 +138,13 @@ internal sealed class RelatedPostsService : IRelatedPostsService
 
     private sealed record Ranked(IPublishedContent Item, double Score, bool Manual);
 
-    private Guid RootKey(IPublishedContent source) =>
-        _nav.TryGetAncestorsKeys(source.Key, out var ancestors) && ancestors.Any() ? ancestors.Last() : source.Key;
+    // Null when the navigation service knows the item and it has no ancestors. If it cannot tell, the item is its own root.
+    private Guid? RootKey(IPublishedContent source)
+    {
+        if (!_nav.TryGetAncestorsKeys(source.Key, out var ancestors)) return source.Key;
+        var list = ancestors.ToList();
+        return list.Count == 0 ? null : list[^1];
+    }
 
     /// <summary>Published, allowed items under the root. Does not exclude the source.</summary>
     private List<IPublishedContent> Candidates(Guid rootKey, string? culture, RelatedPostsOptions o)
@@ -192,15 +205,32 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private static List<string> Strings(object? value) => value switch
     {
         null => [],
-        string s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+        string s => FromString(s),
         IEnumerable<string> many => many.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList(),
         _ => []
     };
 
-    private static string[] Tokens(IPublishedContent c, RelatedPostsOptions o, string? culture)
+    // A JSON array keeps commas inside a tag; anything else is a comma list.
+    private static List<string> FromString(string s)
+    {
+        if (s.AsSpan().TrimStart().StartsWith("["))
+        {
+            try
+            {
+                var tags = JsonSerializer.Deserialize<string[]>(s);
+                if (tags is not null) return tags.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList();
+            }
+            catch (JsonException)
+            {
+            }
+        }
+        return s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    }
+
+    private string[] Tokens(IPublishedContent c, RelatedPostsOptions o, string? culture)
     {
         var summary = string.IsNullOrWhiteSpace(o.SummaryAlias) ? null : c.GetProperty(o.SummaryAlias)?.GetValue(culture)?.ToString();
-        return TextSimilarity.Tokens($"{c.Name(culture)} {summary}");
+        return TextSimilarity.Tokens($"{c.Name(_variation, culture)} {summary}");
     }
 
     private RelatedPost ToPost(IPublishedContent c, double score, bool manual, RelatedPostsOptions o, string? culture)
@@ -213,6 +243,6 @@ internal sealed class RelatedPostsService : IRelatedPostsService
             var item = media as IPublishedContent ?? (media as IEnumerable<IPublishedContent>)?.FirstOrDefault();
             image = item?.Url(_urls);
         }
-        return new RelatedPost(c.Key, c.Name(culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate);
+        return new RelatedPost(c.Key, c.Name(_variation, culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate);
     }
 }

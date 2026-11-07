@@ -8,7 +8,7 @@
         <div class="bdrp__grid">
             @foreach (var item in Model.Items)
             {
-                <partial name="~/Views/Shared/Components/RelatedPosts/_RelatedPostCard.cshtml" model="item" />
+                @await Html.PartialAsync("~/Views/Shared/Components/RelatedPosts/_RelatedPostCard.cshtml", item)
             }
         </div>
     </section>
