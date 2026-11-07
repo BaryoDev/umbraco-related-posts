@@ -31,6 +31,7 @@ internal static class Posts
         };
         return Stub.Make<IPublishedContent>(
             ("get_Key", _ => key),
+            ("get_ItemType", _ => PublishedItemType.Content),
             ("get_Name", _ => name),
             ("get_ContentType", _ => type),
             ("get_Path", _ => $"-1,{id}"),
@@ -56,7 +57,7 @@ internal static class Posts
                 a[1] = all.Select(c => c.Key).ToArray();
                 return true;
             }));
-        var status = Stub.Make<IPublishedStatusFilteringService>(
+        var status = Stub.Make<IPublishedContentStatusFilteringService>(
             ("FilterAvailable", a =>
             {
                 var keys = ((IEnumerable<Guid>)a[0]!).ToHashSet();

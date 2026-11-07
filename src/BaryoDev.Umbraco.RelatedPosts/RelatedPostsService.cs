@@ -21,7 +21,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
     private readonly IUmbracoContextAccessor _umbraco;
     private readonly IVariationContextAccessor _variation;
     private readonly IDocumentNavigationQueryService _nav;
-    private readonly IPublishedStatusFilteringService _status;
+    private readonly IPublishedContentStatusFilteringService _status;
 
     public RelatedPostsService(
         IOptionsMonitor<RelatedPostsOptions> options,
@@ -32,7 +32,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
         IUmbracoContextAccessor umbraco,
         IVariationContextAccessor variation,
         IDocumentNavigationQueryService nav,
-        IPublishedStatusFilteringService status)
+        IPublishedContentStatusFilteringService status)
     {
         _options = options;
         _cache = cache;
