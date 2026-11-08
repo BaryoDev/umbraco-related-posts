@@ -35,6 +35,7 @@ Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ]
         "CategoryAlias": "category",
         "SummaryAlias": "summary",
         "ImageAlias": "image",
+        "DateAlias": "publishDate",
         "ManualAlias": "relatedPicks",
         "TagWeight": 3,
         "CategoryWeight": 2,
@@ -47,7 +48,7 @@ Returns `{ "items": [ { "id", "name", "url", "summary", "imageUrl", "manual" } ]
       }
     }
 
-`AllowProtected` is false by default, so items under public access protection never show. `MaxCount` caps any requested count. The stylesheet is served from `/App_Plugins/BaryoDev.RelatedPosts/related-posts.css`. Text similarity suits English only. `SummaryAlias` reads text properties only, so point it at a text area, not rich text or blocks.
+`DateAlias` names the date property shown on each card. It is used when the post has a value for it, and the card falls back to the update date otherwise. Leave it empty to always show the update date. `AllowProtected` is false by default, so items under public access protection never show. `MaxCount` caps any requested count. The stylesheet is served from `/App_Plugins/BaryoDev.RelatedPosts/related-posts.css`. Text similarity suits English only. `SummaryAlias` reads text properties only, so point it at a text area, not rich text or blocks.
 
 An item at the top of the tree (no section above it) gets no related posts. Posts need to sit under a Home or section page.
 

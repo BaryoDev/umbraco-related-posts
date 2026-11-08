@@ -8,4 +8,8 @@ public sealed record RelatedPost(
     string? ImageUrl,
     double Score,
     bool Manual,
-    DateTime UpdateDate);
+    DateTime UpdateDate)
+{
+    /// <summary>The date shown on the card: the configured date property when set, else UpdateDate.</summary>
+    public DateTime DisplayDate { get; init; } = UpdateDate;
+}
