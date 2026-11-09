@@ -243,6 +243,23 @@ internal sealed class RelatedPostsService : IRelatedPostsService
             var item = media as IPublishedContent ?? (media as IEnumerable<IPublishedContent>)?.FirstOrDefault();
             image = item?.Url(_urls);
         }
-        return new RelatedPost(c.Key, c.Name(_variation, culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate);
+        return new RelatedPost(c.Key, c.Name(_variation, culture) ?? c.Name, c.Url(_urls, culture), summary, image, score, manual, c.UpdateDate)
+        {
+            DisplayDate = DisplayDateOf(c, o.DateAlias, culture),
+        };
+    }
+
+    private static DateTime DisplayDateOf(IPublishedContent c, string? alias, string? culture)
+    {
+        if (string.IsNullOrWhiteSpace(alias)) return c.UpdateDate;
+        var value = c.GetProperty(alias)?.GetValue(culture);
+        return value switch
+        {
+            DateTime d when d != default => d,
+            DateTimeOffset d when d != default => d.DateTime,
+            DateOnly d => d.ToDateTime(TimeOnly.MinValue),
+            string t when DateTime.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed) => parsed,
+            _ => c.UpdateDate,
+        };
     }
 }

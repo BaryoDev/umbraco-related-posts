@@ -21,7 +21,7 @@ internal static class Posts
 {
     private static readonly DateTime Stamp = new(2026, 11, 7, 12, 0, 0, DateTimeKind.Utc);
 
-    public static IPublishedContent Post(string name, object? tags = null, string? category = null, int id = 1)
+    public static IPublishedContent Post(string name, object? tags = null, string? category = null, int id = 1, object? publishDate = null)
     {
         var key = Guid.NewGuid();
         var type = Stub.Make<IPublishedContentType>(("get_Alias", _ => "post"), ("get_ItemType", _ => PublishedItemType.Content));
@@ -42,6 +42,7 @@ internal static class Posts
             {
                 "tags" when tags is not null => tags == NullValue ? Property(null) : Property(tags),
                 "category" when category is not null => Property(category),
+                "publishDate" when publishDate is not null => Property(publishDate),
                 _ => null,
             }));
     }

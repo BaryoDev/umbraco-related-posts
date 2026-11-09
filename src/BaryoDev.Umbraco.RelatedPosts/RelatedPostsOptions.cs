@@ -10,6 +10,8 @@ public sealed class RelatedPostsOptions
     public string CategoryAlias { get; set; } = "category";
     public string SummaryAlias { get; set; } = "summary";
     public string ImageAlias { get; set; } = "image";
+    /// <summary>Date property shown on the card. Used when present and not empty, else the update date. Empty turns it off.</summary>
+    public string DateAlias { get; set; } = "publishDate";
     /// <summary>Content picker whose picks come first. Empty turns it off.</summary>
     public string ManualAlias { get; set; } = "";
 

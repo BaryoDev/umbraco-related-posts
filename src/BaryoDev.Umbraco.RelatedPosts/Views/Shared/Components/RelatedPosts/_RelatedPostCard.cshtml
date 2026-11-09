@@ -7,5 +7,5 @@
     }
     <h3><a href="@Model.Url">@Model.Name</a></h3>
     @if (!string.IsNullOrWhiteSpace(Model.Summary)) { <p>@Model.Summary</p> }
-    <p class="bdrp-card__meta"><span>@Model.UpdateDate.ToString("d MMM yyyy")</span></p>
+    <p class="bdrp-card__meta"><span>@Model.DisplayDate.ToString("d MMM yyyy")</span></p>
 </article>

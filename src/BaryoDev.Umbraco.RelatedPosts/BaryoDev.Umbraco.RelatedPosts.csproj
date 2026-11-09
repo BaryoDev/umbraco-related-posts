@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <PackageId>BaryoDev.Umbraco.RelatedPosts</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>BaryoDev</Authors>
     <Description>Read next related posts for Umbraco 17: shared tags, category and optional text similarity, cached, with a view component and a JSON endpoint.</Description>
     <PackageTags>umbraco umbraco-marketplace related-posts blog tags</PackageTags>
