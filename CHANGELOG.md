@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 The card date prefers the `publishDate` property (option `DateAlias`) when a post has one, and falls back to the update date. Before, imported posts showed the import date.
 
