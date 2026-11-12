@@ -3,7 +3,10 @@
 @if (Model.Items.Count > 0)
 {
     <section class="bdrp" aria-label="@Model.Heading">
-        <link rel="stylesheet" href="/App_Plugins/BaryoDev.RelatedPosts/related-posts.css" />
+        @if (!string.IsNullOrEmpty(Model.Stylesheet))
+        {
+            <link rel="stylesheet" href="@Model.Stylesheet" />
+        }
         <h2 class="bdrp__heading">@Model.Heading</h2>
         <div class="bdrp__grid">
             @foreach (var item in Model.Items)

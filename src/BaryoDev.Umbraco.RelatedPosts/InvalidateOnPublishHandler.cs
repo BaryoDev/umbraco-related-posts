@@ -11,7 +11,9 @@ internal sealed class InvalidateOnPublishHandler :
     INotificationHandler<ContentCacheRefresherNotification>,
     INotificationHandler<PublicAccessCacheRefresherNotification>,
     INotificationHandler<MediaCacheRefresherNotification>,
-    INotificationHandler<DomainCacheRefresherNotification>
+    INotificationHandler<DomainCacheRefresherNotification>,
+    INotificationHandler<ContentTypeCacheRefresherNotification>,
+    INotificationHandler<LanguageCacheRefresherNotification>
 {
     private readonly RelatedPostsCache _cache;
 
@@ -21,4 +23,6 @@ internal sealed class InvalidateOnPublishHandler :
     public void Handle(PublicAccessCacheRefresherNotification notification) => _cache.Clear();
     public void Handle(MediaCacheRefresherNotification notification) => _cache.Clear();
     public void Handle(DomainCacheRefresherNotification notification) => _cache.Clear();
+    public void Handle(ContentTypeCacheRefresherNotification notification) => _cache.Clear();
+    public void Handle(LanguageCacheRefresherNotification notification) => _cache.Clear();
 }

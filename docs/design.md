@@ -15,7 +15,7 @@ Items with a score of 0 are dropped unless `IncludeZeroScore` is true. Ties brea
 
 ## Caching
 
-The candidate list per root and culture is cached, and the ranked keys per source and culture. Urls are built per request, so the request domain is never cached. Misses are single flight. The cache is package-owned and bounded. Preview requests skip it. The culture is resolved first (argument, then the ambient variation context). Content, media, domain and public access cache refresher notifications cancel a shared token, which drops every entry and also covers load-balanced servers. This is coarse on purpose. Related lists depend on the whole candidate set, so a finer rule would be wrong more often than it is fast. Entries also expire after `CacheMinutes`.
+The candidate list per root and culture is cached, and the ranked keys per source and culture. Urls are built per request, so the request domain is never cached. Misses are single flight. The cache is package-owned and bounded by `MaxCacheEntries` (default 10000). A probe with 12000 entries and a limit of 10000 stored 10000, then compacted about 5 percent and went on storing, so past the limit lists are computed again rather than never cached. The first capacity eviction logs a warning. Preview requests skip it. The culture is resolved first (argument, then the ambient variation context). Content, media, domain, public access, content type and language cache refresher notifications cancel a shared token, which drops every entry and also covers load-balanced servers. This is coarse on purpose. Related lists depend on the whole candidate set, so a finer rule would be wrong more often than it is fast. Entries also expire after `CacheMinutes`.
 
 ## Surface
 

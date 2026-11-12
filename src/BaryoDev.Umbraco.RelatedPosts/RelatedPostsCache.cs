@@ -6,10 +6,27 @@ namespace BaryoDev.Umbraco.RelatedPosts;
 /// <summary>Package-owned bounded memory cache with one shared token. Cancelling it drops every entry.</summary>
 public sealed class RelatedPostsCache
 {
-    private const int MaxEntries = 10000;
-    private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = MaxEntries });
+    public const int DefaultMaxEntries = 10000;
+    private readonly MemoryCache _cache;
+    private readonly Action<int>? _onCapacity;
     private readonly object _gate = new();
     private CancellationTokenSource _cts = new();
+    private int _warned;
+
+    public RelatedPostsCache() : this(DefaultMaxEntries, null)
+    {
+    }
+
+    /// <param name="maxEntries">Entry limit. At the limit the memory cache evicts some entries to make room.</param>
+    /// <param name="onCapacity">Called once, the first time an entry is evicted for lack of room.</param>
+    public RelatedPostsCache(int maxEntries, Action<int>? onCapacity)
+    {
+        MaxEntries = Math.Max(1, maxEntries);
+        _onCapacity = onCapacity;
+        _cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = MaxEntries });
+    }
+
+    public int MaxEntries { get; }
 
     /// <summary>Single flight: concurrent misses for one key share one compute.</summary>
     public T GetOrCreate<T>(string key, TimeSpan ttl, Func<T> create)
@@ -25,6 +42,7 @@ public sealed class RelatedPostsCache
                     lazy = new Lazy<T>(create, LazyThreadSafetyMode.ExecutionAndPublication);
                     var options = new MemoryCacheEntryOptions { Size = 1, AbsoluteExpirationRelativeToNow = ttl };
                     options.AddExpirationToken(new CancellationChangeToken(cts.Token));
+                    options.RegisterPostEvictionCallback(OnEvicted);
                     _cache.Set(key, lazy, options);
                 }
             }
@@ -37,6 +55,14 @@ public sealed class RelatedPostsCache
         {
             _cache.Remove(key);
             throw;
+        }
+    }
+
+    private void OnEvicted(object key, object? value, EvictionReason reason, object? state)
+    {
+        if (reason == EvictionReason.Capacity && Interlocked.Exchange(ref _warned, 1) == 0)
+        {
+            _onCapacity?.Invoke(MaxEntries);
         }
     }
 
