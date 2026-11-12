@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New option `MaxCacheEntries` (default 10000) for the cache limit, with a warning logged once when the cache is full.
+- Summaries lose their tags and are cut to `SummaryMaxLength` characters (default 300) at a word edge, in the cards and the API.
+- The stylesheet link follows the site's path base, can be changed or turned off with `StylesheetPath`, and is written once per page.
+- Content type and language changes now clear the cache.
+
 ## 0.2.0
 
 The card date prefers the `publishDate` property (option `DateAlias`) when a post has one, and falls back to the update date. Before, imported posts showed the import date.

@@ -26,6 +26,19 @@ public sealed class RelatedPostsOptions
     /// <summary>Off by default: items under public access protection are left out.</summary>
     public bool AllowProtected { get; set; }
     public int CacheMinutes { get; set; } = 60;
+    /// <summary>
+    /// Most entries the cache keeps. It holds one entry per root and culture, plus one per source post and culture
+    /// that was asked for within <c>CacheMinutes</c>. Past this the cache drops about 5 percent of its entries to
+    /// make room, so those lists are computed again, and a warning is logged once. Takes effect at start.
+    /// </summary>
+    public int MaxCacheEntries { get; set; } = 10000;
+    /// <summary>Longest summary on a card or in the API, cut at a word edge. 0 means no cut.</summary>
+    public int SummaryMaxLength { get; set; } = 300;
+    /// <summary>
+    /// Stylesheet link the card view writes. A path starting with <c>~/</c> follows the site's path base. Empty writes no link,
+    /// for sites that bring their own styles.
+    /// </summary>
+    public string StylesheetPath { get; set; } = "~/App_Plugins/BaryoDev.RelatedPosts/related-posts.css";
     public bool IncludeZeroScore { get; set; }
     public bool EnableApi { get; set; } = true;
 }

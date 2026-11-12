@@ -235,7 +235,7 @@ internal sealed class RelatedPostsService : IRelatedPostsService
 
     private RelatedPost ToPost(IPublishedContent c, double score, bool manual, RelatedPostsOptions o, string? culture)
     {
-        var summary = string.IsNullOrWhiteSpace(o.SummaryAlias) ? null : c.GetProperty(o.SummaryAlias)?.GetValue(culture)?.ToString();
+        var summary = SummaryText.Cut(string.IsNullOrWhiteSpace(o.SummaryAlias) ? null : c.GetProperty(o.SummaryAlias)?.GetValue(culture)?.ToString(), o.SummaryMaxLength);
         string? image = null;
         if (!string.IsNullOrWhiteSpace(o.ImageAlias))
         {
