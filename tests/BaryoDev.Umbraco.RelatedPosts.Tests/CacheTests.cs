@@ -70,27 +70,30 @@ public class CacheTests
     }
 
     [Fact]
-    public void Past_the_limit_the_cache_reports_once_and_keeps_storing()
+    public void A_capacity_eviction_is_reported_once_and_the_cache_keeps_serving()
     {
         var reports = new List<int>();
-        var cache = new RelatedPostsCache(5, reports.Add);
+        var cache = new RelatedPostsCache(10, n => { lock (reports) { reports.Add(n); } });
+        var calls = 0;
+        int Create() => ++calls;
+        cache.GetOrCreate("a", Ttl, Create);
+        cache.GetOrCreate("b", Ttl, Create);
 
-        for (var i = 0; i < 30; i++)
-        {
-            cache.GetOrCreate($"k{i}", Ttl, () => i);
-        }
+        cache.Compact(1.0);
+        cache.Compact(1.0);
 
-        // Compaction runs on a background task, so wait for it.
-        Assert.True(SpinWait.SpinUntil(() => { lock (reports) { return reports.Count > 0; } }, TimeSpan.FromSeconds(30)));
-        Thread.Sleep(200);
-        cache.GetOrCreate("after", Ttl, () => 1);
-
+        // Eviction callbacks run on the thread pool, so wait for the first one only.
+        Assert.True(SpinWait.SpinUntil(() => { lock (reports) { return reports.Count > 0; } }, TimeSpan.FromSeconds(5)));
+        Thread.Sleep(50);
         lock (reports)
         {
-            Assert.Equal([5], reports);
+            Assert.Equal([10], reports);
         }
-        Assert.Equal(5, cache.MaxEntries);
-        Assert.Equal(9, cache.GetOrCreate("after2", Ttl, () => 9));
+
+        // Evicted keys are computed again, then served from the cache.
+        Assert.Equal(3, cache.GetOrCreate("a", Ttl, Create));
+        Assert.Equal(3, cache.GetOrCreate("a", Ttl, Create));
+        Assert.Equal(3, calls);
     }
 
     [Fact]

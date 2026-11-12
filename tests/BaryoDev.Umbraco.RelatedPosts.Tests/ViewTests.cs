@@ -55,4 +55,30 @@ public class ViewTests
         Assert.Null(RelatedPostsViewComponent.ResolveStylesheet("", url));
         Assert.Null(RelatedPostsViewComponent.ResolveStylesheet(null, url));
     }
+
+    [Fact]
+    public void The_stylesheet_is_written_once_per_page()
+    {
+        var page = new Dictionary<object, object?>();
+        var url = Stub.Make<IUrlHelper>(("Content", a => ((string)a[0]!)[1..]));
+        var path = new RelatedPostsOptions().StylesheetPath;
+
+        var first = RelatedPostsViewComponent.StylesheetFor(page, 3, path, () => url);
+        var second = RelatedPostsViewComponent.StylesheetFor(page, 3, path, () => url);
+
+        Assert.Equal("/App_Plugins/BaryoDev.RelatedPosts/related-posts.css", first);
+        Assert.Null(second);
+    }
+
+    [Fact]
+    public void An_empty_row_or_an_empty_path_writes_no_link_and_does_not_use_up_the_page()
+    {
+        var page = new Dictionary<object, object?>();
+        var url = Stub.Make<IUrlHelper>(("Content", a => ((string)a[0]!)[1..]));
+
+        Assert.Null(RelatedPostsViewComponent.StylesheetFor(page, 0, "~/a.css", () => url));
+        Assert.Null(RelatedPostsViewComponent.StylesheetFor(page, 2, "", () => url));
+        Assert.Empty(page);
+        Assert.Equal("/a.css", RelatedPostsViewComponent.StylesheetFor(page, 2, "~/a.css", () => url));
+    }
 }

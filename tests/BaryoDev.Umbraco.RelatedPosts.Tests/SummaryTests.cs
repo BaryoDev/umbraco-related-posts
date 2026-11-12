@@ -43,4 +43,23 @@ public class SummaryTests
         Assert.True(related.Summary!.Length <= 23);
         Assert.EndsWith("...", related.Summary);
     }
+
+    [Fact]
+    public void A_cap_of_one_with_a_surrogate_pair_first_does_not_throw()
+    {
+        Assert.Equal("...", SummaryText.Cut("\uD83D\uDE00 emoji text here", 1));
+    }
+
+    [Fact]
+    public void Rich_text_loses_its_tags_before_the_cut()
+    {
+        var html = "<p>" + string.Join(' ', Enumerable.Repeat("<strong>wordy</strong>", 100)) + "</p>";
+
+        var cut = SummaryText.Cut(html, 50)!;
+
+        Assert.DoesNotContain("<", cut);
+        Assert.DoesNotContain(">", cut);
+        Assert.True(cut.Length <= 53);
+        Assert.Equal("Hello there", SummaryText.Cut("<p>Hello <em>there</em></p>", 300));
+    }
 }

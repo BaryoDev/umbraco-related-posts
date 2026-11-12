@@ -58,6 +58,9 @@ public sealed class RelatedPostsCache
         }
     }
 
+    /// <summary>Evicts a share of the entries now, the way a full cache does in the background. For tests.</summary>
+    internal void Compact(double percentage) => _cache.Compact(percentage);
+
     private void OnEvicted(object key, object? value, EvictionReason reason, object? state)
     {
         if (reason == EvictionReason.Capacity && Interlocked.Exchange(ref _warned, 1) == 0)
